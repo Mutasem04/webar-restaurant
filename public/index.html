@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAR Restaurant Platform</title>
+    <meta name="description" content="Create augmented reality experiences for your restaurant menu">
+    <meta name="theme-color" content="#00d9ff">
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        header { text-align: center; padding: 4rem 0; }
+        .logo { font-size: 4rem; margin-bottom: 1rem; }
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, #00d9ff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { font-size: 1.2rem; color: #a0aec0; max-width: 600px; margin: 0 auto 2rem; }
+        .cta-section { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .btn { padding: 1rem 2rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #00d9ff, #00ff88); color: #1a1a2e; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,217,255,0.3); }
+        .btn-secondary { background: transparent; border: 2px solid #00d9ff; color: #00d9ff; }
+        .btn-secondary:hover { background: rgba(0,217,255,0.1); }
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin: 4rem 0; }
+        .feature-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 2rem; text-align: center; transition: transform 0.3s; }
+        .feature-card:hover { transform: translateY(-5px); border-color: #00d9ff; }
+        .feature-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .feature-card h3 { margin-bottom: 0.5rem; color: #00d9ff; }
+        .feature-card p { color: #a0aec0; font-size: 0.9rem; }
+        .how-it-works { text-align: center; margin: 4rem 0; }
+        .how-it-works h2 { font-size: 2rem; margin-bottom: 2rem; }
+        .steps { display: flex; justify-content: center; flex-wrap: wrap; gap: 2rem; }
+        .step { flex: 1; min-width: 200px; max-width: 250px; }
+        .step-number { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #00d9ff, #00ff88); color: #1a1a2e; font-weight: bold; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+        .step h4 { margin-bottom: 0.5rem; }
+        .step p { color: #a0aec0; font-size: 0.9rem; }
+        footer { text-align: center; padding: 2rem 0; color: #a0aec0; border-top: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🍽️✨</div>
+            <h1>WebAR Restaurant Platform</h1>
+            <p class="subtitle">Bring your menu to life with Augmented Reality. Let customers see dishes in 3D before they order!</p>
+            <div class="cta-section">
+                <a href="/admin" class="btn btn-primary">🏛️ Admin Dashboard</a>
+                <a href="/viewer.html" class="btn btn-secondary">👁️ Demo Viewer</a>
+            </div>
+        </header>
+        <section class="features">
+            <div class="feature-card"><div class="feature-icon">📸</div><h3>Image Target Tracking</h3><p>Use your existing menu photos as AR triggers.</p></div>
+            <div class="feature-card"><div class="feature-icon">📱</div><h3>No App Required</h3><p>Works directly in the browser using WebAR technology.</p></div>
+            <div class="feature-card"><div class="feature-icon">🎬</div><h3>Videos & 3D Models</h3><p>Show cooking videos or 3D models of your dishes.</p></div>
+            <div class="feature-card"><div class="feature-icon">📊</div><h3>Easy Management</h3><p>Simple admin dashboard to manage AR content.</p></div>
+        </section>
+        <section class="how-it-works">
+            <h2>How It Works</h2>
+            <div class="steps">
+                <div class="step"><div class="step-number">1</div><h4>Upload Target</h4><p>Upload a photo of your menu item</p></div>
+                <div class="step"><div class="step-number">2</div><h4>Add AR Content</h4><p>Upload a video or 3D model</p></div>
+                <div class="step"><div class="step-number">3</div><h4>Get QR Code</h4><p>System generates a unique QR code</p></div>
+                <div class="step"><div class="step-number">4</div><h4>Customer Scans</h4><p>Customers scan and see AR content!</p></div>
+            </div>
+        </section>
+        <footer><p>Built with MindAR.js • WebXR Technology • 2026</p></footer>
+    </div>
+    <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));</script>
+</body>
+</html>
