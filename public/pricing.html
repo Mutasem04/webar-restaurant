@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - WebAR Restaurant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        header { text-align: center; padding: 3rem 0; }
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, #00d9ff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { color: #a0aec0; font-size: 1.1rem; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin: 3rem 0; }
+        .pricing-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 2rem; text-align: center; transition: transform 0.3s; }
+        .pricing-card:hover { transform: translateY(-10px); }
+        .pricing-card.popular { border-color: #00d9ff; background: rgba(0,217,255,0.1); }
+        .plan-name { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .plan-price { font-size: 3rem; font-weight: 700; margin: 1rem 0; }
+        .plan-price span { font-size: 1rem; color: #a0aec0; }
+        .plan-features { list-style: none; margin: 2rem 0; text-align: left; }
+        .plan-features li { padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: #a0aec0; }
+        .plan-features li::before { content: '✓ '; color: #00ff88; margin-right: 0.5rem; }
+        .btn { display: inline-block; padding: 1rem 2rem; border-radius: 50px; font-weight: 600; text-decoration: none; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #00d9ff, #00ff88); color: #1a1a2e; }
+        .btn-outline { background: transparent; border: 2px solid #00d9ff; color: #00d9ff; }
+        footer { text-align: center; padding: 2rem 0; color: #a0aec0; border-top: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💳 Pricing Plans</h1>
+            <p class="subtitle">Choose the perfect plan for your restaurant</p>
+        </header>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3 class="plan-name">Starter</h3>
+                <div class="plan-price">$29<span>/month</span></div>
+                <ul class="plan-features">
+                    <li>Up to 10 menu items</li>
+                    <li>Basic analytics</li>
+                    <li>QR code generation</li>
+                    <li>Email support</li>
+                </ul>
+                <a href="/signup" class="btn btn-outline">Get Started</a>
+            </div>
+            <div class="pricing-card popular">
+                <h3 class="plan-name">⭐ Pro</h3>
+                <div class="plan-price">$79<span>/month</span></div>
+                <ul class="plan-features">
+                    <li>Up to 50 menu items</li>
+                    <li>Advanced analytics</li>
+                    <li>Custom branding</li>
+                    <li>Priority support</li>
+                    <li>3D model support</li>
+                </ul>
+                <a href="/signup" class="btn btn-primary">Start Free Trial</a>
+            </div>
+            <div class="pricing-card">
+                <h3 class="plan-name">Enterprise</h3>
+                <div class="plan-price">$199<span>/month</span></div>
+                <ul class="plan-features">
+                    <li>Unlimited menu items</li>
+                    <li>White-label solution</li>
+                    <li>API access</li>
+                    <li>Dedicated support</li>
+                    <li>Multi-location support</li>
+                </ul>
+                <a href="/signup" class="btn btn-outline">Contact Sales</a>
+            </div>
+        </div>
+        <footer><p><a href="/" style="color:#00d9ff;text-decoration:none;">← Back to Home</a></p></footer>
+    </div>
+</body>
+</html>
