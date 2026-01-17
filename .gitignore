@@ -1,0 +1,14 @@
+node_modules/
+.env
+*.log
+logs/
+uploads/targets/
+uploads/content/
+uploads/compiled/
+uploads/qrcodes/
+uploads/branding/
+database/*.db
+.DS_Store
+Thumbs.db
+*.mind
+.env.local
