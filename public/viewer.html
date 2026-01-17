@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR Viewer - WebAR Restaurant</title>
+    
+    <!-- MindAR.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <link rel="stylesheet" href="/css/viewer.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>Loading AR Experience</h2>
+            <p id="loadingText">Preparing your augmented reality view...</p>
+            <div class="loading-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="loadingProgress"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Screen -->
+    <div id="errorScreen" class="error-screen hidden">
+        <div class="error-content">
+            <span class="error-icon">⚠️</span>
+            <h2 id="errorTitle">Oops!</h2>
+            <p id="errorMessage">Something went wrong.</p>
+            <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
+            <a href="/" class="btn btn-outline">Go Home</a>
+        </div>
+    </div>
+
+    <!-- Instructions Overlay -->
+    <div id="instructionsOverlay" class="instructions-overlay hidden">
+        <div class="instructions-content">
+            <button class="close-btn" onclick="hideInstructions()">✕</button>
+            <span class="instructions-icon">📱</span>
+            <h2>Point Camera at Menu Item</h2>
+            <div class="target-preview">
+                <img id="targetPreviewImg" src="" alt="Target Image">
+            </div>
+            <p>Look for this image on your menu and point your camera at it</p>
+            <button class="btn btn-primary" onclick="hideInstructions()">Got it!</button>
+        </div>
+    </div>
+
+    <!-- AR Scene Container -->
+    <div id="arContainer" class="ar-container hidden">
+        <!-- A-Frame AR Scene - Will be dynamically created -->
+    </div>
+
+    <!-- UI Overlay -->
+    <div id="uiOverlay" class="ui-overlay hidden">
+        <header class="viewer-header">
+            <a href="/" class="back-btn">←</a>
+            <h1 id="itemName">Menu Item</h1>
+            <button class="info-btn" onclick="showInstructions()">?</button>
+        </header>
+
+        <div class="scanning-indicator" id="scanningIndicator">
+            <div class="scanning-animation"></div>
+            <span>Scanning for target...</span>
+        </div>
+
+        <footer class="viewer-footer">
+            <p id="itemDescription"></p>
+        </footer>
+    </div>
+
+    <!-- Fallback for no WebGL/Camera -->
+    <div id="fallbackView" class="fallback-view hidden">
+        <div class="fallback-content">
+            <h2 id="fallbackItemName">Menu Item</h2>
+            <div class="fallback-media" id="fallbackMedia">
+                <!-- Video or 3D preview will go here -->
+            </div>
+            <p id="fallbackDescription"></p>
+            <p class="fallback-note">
+                📱 For the full AR experience, please use a device with camera access.
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/viewer.js"></script>
+</body>
+</html>

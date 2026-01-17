@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - WebAR Restaurant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">🍽️</span>
+                <span class="logo-text">WebAR Admin</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="/" class="nav-item">
+                    <span class="nav-icon">🏠</span>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="nav-item active">
+                    <span class="nav-icon">📋</span>
+                    <span>Menu Items</span>
+                </a>
+                <a href="#upload-section" class="nav-item">
+                    <span class="nav-icon">➕</span>
+                    <span>Add New</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h1>📋 Menu Items Management</h1>
+                <p>Upload target images and AR content for your menu items</p>
+            </header>
+
+            <!-- Upload Form Section -->
+            <section id="upload-section" class="card upload-section">
+                <h2>➕ Add New Menu Item</h2>
+                
+                <form id="uploadForm" class="upload-form">
+                    <div class="form-group">
+                        <label for="itemName">Item Name</label>
+                        <input type="text" id="itemName" name="name" placeholder="e.g., Classic Burger" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="itemDescription">Description (Optional)</label>
+                        <textarea id="itemDescription" name="description" placeholder="Describe the dish..."></textarea>
+                    </div>
+
+                    <div class="upload-grid">
+                        <!-- Target Image Upload -->
+                        <div class="upload-box" id="targetImageBox">
+                            <div class="upload-content">
+                                <span class="upload-icon">🎯</span>
+                                <h3>Target Image</h3>
+                                <p>Upload the menu item photo<br>(This will be tracked by AR)</p>
+                                <input type="file" id="targetImage" name="targetImage" accept="image/*" hidden>
+                                <button type="button" class="btn btn-outline" onclick="document.getElementById('targetImage').click()">
+                                    Choose Image
+                                </button>
+                            </div>
+                            <div class="preview-container" id="targetPreview"></div>
+                        </div>
+
+                        <!-- AR Content Upload -->
+                        <div class="upload-box" id="arContentBox">
+                            <div class="upload-content">
+                                <span class="upload-icon">🎬</span>
+                                <h3>AR Content</h3>
+                                <p>Upload video or 3D model<br>(.mp4, .webm, .glb, .gltf)</p>
+                                <input type="file" id="arContent" name="arContent" accept="video/*,.glb,.gltf" hidden>
+                                <button type="button" class="btn btn-outline" onclick="document.getElementById('arContent').click()">
+                                    Choose Content
+                                </button>
+                            </div>
+                            <div class="preview-container" id="contentPreview"></div>
+                        </div>
+                    </div>
+
+                    <!-- Compiler Status -->
+                    <div id="compilerStatus" class="compiler-status hidden">
+                        <div class="compiler-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <span id="progressText">Compiling target image...</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
+                        <span class="btn-text">🚀 Create AR Menu Item</span>
+                        <span class="btn-loading hidden">⏳ Processing...</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Menu Items List -->
+            <section class="card items-section">
+                <div class="section-header">
+                    <h2>📦 Your Menu Items</h2>
+                    <button class="btn btn-outline" onclick="loadMenuItems()">🔄 Refresh</button>
+                </div>
+
+                <div id="menuItemsList" class="items-grid">
+                    <!-- Items will be loaded here -->
+                    <div class="loading-state">
+                        <span class="loading-spinner">⏳</span>
+                        <p>Loading menu items...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal hidden">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeQRModal()">✕</button>
+            <h2 id="qrModalTitle">QR Code</h2>
+            <div id="qrCodeContainer" class="qr-container"></div>
+            <p class="qr-url" id="qrUrl"></p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="downloadQR()">📥 Download QR</button>
+                <button class="btn btn-outline" onclick="copyLink()">🔗 Copy Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/js/admin.js"></script>
+</body>
+</html>
