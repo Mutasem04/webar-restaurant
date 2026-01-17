@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: webar-restaurant
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: BASE_URL
+        fromService:
+          type: web
+          name: webar-restaurant
+          property: host
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
