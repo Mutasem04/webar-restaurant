@@ -4,6 +4,13 @@
  */
 
 require('dotenv').config();
+
+// Set default JWT_SECRET if not provided (for development/initial setup)
+if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = 'webar-default-secret-change-in-production-' + Date.now();
+    console.log('⚠️ WARNING: Using default JWT_SECRET. Set JWT_SECRET env var in production!');
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -19,6 +26,13 @@ const logger = require('./utils/logger');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Use DATA_DIR for cloud platforms (Render, Railway) or local directory
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+
+console.log('📁 Data directory:', DATA_DIR);
+console.log('📁 Uploads directory:', UPLOADS_DIR);
 
 // Request ID Middleware
 app.use((req, res, next) => {
@@ -79,15 +93,22 @@ app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static files
+// Static files - serve from both local and DATA_DIR
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(UPLOADS_DIR));
 
-// Ensure directories
-['uploads', 'uploads/targets', 'uploads/content', 'uploads/compiled', 'uploads/qrcodes', 'database', 'logs'].forEach(dir => {
-    const dirPath = path.join(__dirname, dir);
-    if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+// Ensure directories exist in DATA_DIR
+['uploads', 'uploads/targets', 'uploads/content', 'uploads/compiled', 'uploads/qrcodes', 'data', 'logs'].forEach(dir => {
+    const dirPath = path.join(DATA_DIR, dir);
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+        console.log('📁 Created directory:', dirPath);
+    }
 });
+
+// Also ensure database directory exists
+const dbDir = path.join(__dirname, 'database');
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
 // Swagger docs
 const swaggerUi = require('swagger-ui-express');
@@ -103,7 +124,14 @@ app.use('/api/branding', require('./routes/branding'));
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ success: true, status: 'healthy', timestamp: new Date().toISOString(), uptime: process.uptime() });
+    res.json({ 
+        success: true, 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(), 
+        uptime: process.uptime(),
+        dataDir: DATA_DIR,
+        nodeEnv: process.env.NODE_ENV || 'development'
+    });
 });
 
 // Public viewer endpoint
@@ -116,6 +144,7 @@ app.get('/api/viewer/:id', (req, res) => {
         analyticsOps.trackView.run(item.id, req.ip || 'unknown', req.get('User-Agent') || 'unknown');
         res.json({ success: true, data: { id: item.id, name: item.name, description: item.description, mindFile: item.mind_file, arContent: item.ar_content, contentType: item.content_type } });
     } catch (error) {
+        console.error('Viewer error:', error);
         res.status(500).json({ success: false, error: 'Failed to load AR experience' });
     }
 });
@@ -132,6 +161,7 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 // Error handling
 app.use((err, req, res, next) => {
     logger.logError(err, req);
+    console.error('Server error:', err);
     res.status(err.status || 500).json({ success: false, error: isProduction ? 'Internal server error' : err.message });
 });
 
@@ -139,6 +169,7 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, () => {
     logger.info('Server started', { port: PORT, env: process.env.NODE_ENV || 'development' });
     console.log(`🚀 Server running at http://localhost:${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown

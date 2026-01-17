@@ -15,9 +15,16 @@ const { sendQRReadyEmail } = require('../services/email');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3001';
 
+// Use DATA_DIR for cloud platforms (Render, Railway) or local directory
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..');
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+
+console.log('📁 Items route - Uploads directory:', UPLOADS_DIR);
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dir = path.join(__dirname, '..', 'uploads', file.fieldname === 'targetImage' ? 'targets' : 'content');
+        const subDir = file.fieldname === 'targetImage' ? 'targets' : 'content';
+        const dir = path.join(UPLOADS_DIR, subDir);
         fs.mkdirSync(dir, { recursive: true });
         cb(null, dir);
     },
@@ -62,11 +69,15 @@ router.post('/', authenticate, checkQRLimit, upload.fields([{ name: 'targetImage
         const contentExt = path.extname(contentFile.filename).toLowerCase();
         const contentType = ['.glb', '.gltf'].includes(contentExt) ? '3d' : ['.jpg', '.jpeg', '.png'].includes(contentExt) ? 'image' : 'video';
         const itemId = uuidv4();
-        const mindFilePath = path.join(__dirname, '..', 'uploads', 'compiled', `${itemId}.mind`);
-        const qrCodePath = path.join(__dirname, '..', 'uploads', 'qrcodes', `${itemId}.png`);
+        const mindFilePath = path.join(UPLOADS_DIR, 'compiled', `${itemId}.mind`);
+        const qrCodePath = path.join(UPLOADS_DIR, 'qrcodes', `${itemId}.png`);
+        
+        // Ensure directories exist
+        fs.mkdirSync(path.dirname(mindFilePath), { recursive: true });
+        fs.mkdirSync(path.dirname(qrCodePath), { recursive: true });
+        
         await compileTargetImage(targetFile.path, mindFilePath);
         const viewerUrl = `${BASE_URL}/viewer.html?id=${itemId}`;
-        fs.mkdirSync(path.dirname(qrCodePath), { recursive: true });
         await QRCode.toFile(qrCodePath, viewerUrl, { width: 400, margin: 2 });
         menuItemOps.create.run(itemId, req.user.id, name || 'Unnamed Item', description || '', `/uploads/targets/${targetFile.filename}`, `/uploads/content/${contentFile.filename}`, contentType, `/uploads/compiled/${itemId}.mind`, `/uploads/qrcodes/${itemId}.png`, viewerUrl);
         userOps.incrementQRCount.run(req.user.id);
@@ -91,6 +102,26 @@ router.delete('/:id', authenticate, (req, res) => {
     try {
         const item = menuItemOps.findByIdAndUser.get(req.params.id, req.user.id);
         if (!item) return res.status(404).json({ error: 'Item not found' });
+        
+        // Clean up files (use DATA_DIR for cloud compatibility)
+        const filesToDelete = [
+            item.target_image,
+            item.ar_content,
+            item.mind_file,
+            item.qr_code
+        ].filter(Boolean);
+        
+        for (const filePath of filesToDelete) {
+            const fullPath = path.join(DATA_DIR, filePath);
+            if (fs.existsSync(fullPath)) {
+                try {
+                    fs.unlinkSync(fullPath);
+                } catch (e) {
+                    console.error('Failed to delete file:', fullPath, e);
+                }
+            }
+        }
+        
         menuItemOps.delete.run(req.params.id, req.user.id);
         userOps.decrementQRCount.run(req.user.id);
         res.json({ success: true, message: 'Item deleted' });
