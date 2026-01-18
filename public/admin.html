@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,137 +10,191 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/admin.css">
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <style>
+        .content-type-selector { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .content-type-btn { flex: 1; padding: 0.75rem 1rem; border: 2px solid var(--border-color); background: var(--bg-tertiary); border-radius: var(--radius); color: var(--text-secondary); font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+        .content-type-btn:hover { border-color: var(--accent-primary); }
+        .content-type-btn.active { border-color: var(--accent-primary); background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); }
+        .model-library { display: none; margin-top: 1rem; }
+        .model-library.active { display: block; }
+        .model-library h4 { margin-bottom: 0.75rem; color: var(--text-secondary); font-size: 0.9rem; }
+        .model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+        .model-card { background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 0.5rem; cursor: pointer; transition: all 0.3s ease; text-align: center; }
+        .model-card:hover { border-color: var(--accent-primary); transform: translateY(-2px); }
+        .model-card.selected { border-color: var(--accent-cyan); background: rgba(34, 211, 238, 0.1); }
+        .model-card model-viewer { width: 100%; height: 100px; background: transparent; --poster-color: transparent; }
+        .model-card .model-name { font-size: 0.8rem; font-weight: 500; margin-top: 0.5rem; color: var(--text-primary); }
+        .model-card .model-type { font-size: 0.7rem; color: var(--text-muted); }
+        .url-input-section { display: none; margin-top: 1rem; }
+        .url-input-section.active { display: block; }
+        .url-input-section input { width: 100%; padding: 0.875rem 1rem; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: var(--radius); color: var(--text-primary); font-size: 0.95rem; }
+        .url-input-section input:focus { outline: none; border-color: var(--accent-primary); }
+        .sample-videos { margin-top: 1rem; }
+        .sample-videos h5 { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .sample-video-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .sample-video-btn { padding: 0.5rem 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 50px; color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+        .sample-video-btn:hover { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+        .upload-section-file { display: block; }
+        .upload-section-file.hidden { display: none; }
+    </style>
 </head>
 <body>
     <div class="dashboard">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo">
-                <div class="logo-icon">🍽️</div>
+                <div class="logo-icon"></div>
                 <span class="logo-text">Smart Menu</span>
             </div>
             <nav class="nav-menu">
-                <a href="/" class="nav-item">
-                    <span class="nav-icon">🏠</span>
-                    <span>Home</span>
-                </a>
-                <a href="#" class="nav-item active">
-                    <span class="nav-icon">📋</span>
-                    <span>Menu Items</span>
-                </a>
-                <a href="#upload-section" class="nav-item">
-                    <span class="nav-icon">✨</span>
-                    <span>Add New Item</span>
-                </a>
-                <a href="#" class="nav-item" onclick="logout()">
-                    <span class="nav-icon">🚪</span>
-                    <span>Logout</span>
-                </a>
+                <a href="/" class="nav-item"><span class="nav-icon"></span><span>Home</span></a>
+                <a href="#" class="nav-item active"><span class="nav-icon"></span><span>Menu Items</span></a>
+                <a href="#upload-section" class="nav-item"><span class="nav-icon"></span><span>Add New Item</span></a>
+                <a href="#" class="nav-item" onclick="logout()"><span class="nav-icon"></span><span>Logout</span></a>
             </nav>
         </aside>
-
-        <!-- Main Content -->
         <main class="main-content">
             <header class="header">
-                <h1>📋 Menu Items</h1>
+                <h1> Menu Items</h1>
                 <p>Create and manage AR experiences for your menu</p>
             </header>
-
-            <!-- Upload Form Section -->
             <section id="upload-section" class="card upload-section">
-                <h2>✨ Add New AR Menu Item</h2>
-                
+                <h2> Add New AR Menu Item</h2>
                 <form id="uploadForm" class="upload-form">
                     <div class="form-group">
                         <label for="itemName">Item Name</label>
                         <input type="text" id="itemName" name="name" placeholder="e.g., Classic Burger, Margherita Pizza..." required>
                     </div>
-
                     <div class="form-group">
                         <label for="itemDescription">Description (Optional)</label>
-                        <textarea id="itemDescription" name="description" placeholder="Describe your dish - ingredients, taste, portion size..."></textarea>
+                        <textarea id="itemDescription" name="description" placeholder="Describe your dish..."></textarea>
                     </div>
-
-                    <div class="upload-grid">
-                        <!-- Target Image Upload -->
+                    <div class="form-group">
+                        <label> Target Image (Required)</label>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">Upload the menu item photo - customers scan this to trigger AR</p>
                         <label class="upload-box" id="targetImageBox" for="targetImage">
                             <input type="file" id="targetImage" name="targetImage" accept="image/*" class="file-input-hidden">
                             <div class="upload-content">
-                                <span class="upload-icon">🎯</span>
-                                <h3>Target Image</h3>
-                                <p>Upload the menu item photo<br>(This triggers the AR experience)</p>
-                                <span class="btn upload-btn">Choose Image</span>
+                                <span class="upload-icon"></span>
+                                <h3>Click to Upload</h3>
+                                <p>JPG, PNG (high contrast works best)</p>
                             </div>
                             <div class="preview-container" id="targetPreview"></div>
                         </label>
-
-                        <!-- AR Content Upload -->
-                        <label class="upload-box" id="arContentBox" for="arContent">
-                            <input type="file" id="arContent" name="arContent" accept="video/*,.glb,.gltf" class="file-input-hidden">
-                            <div class="upload-content">
-                                <span class="upload-icon">🎬</span>
-                                <h3>AR Content</h3>
-                                <p>Upload video or 3D model<br>(.mp4, .webm, .glb, .gltf)</p>
-                                <span class="btn upload-btn">Choose Content</span>
-                            </div>
-                            <div class="preview-container" id="contentPreview"></div>
-                        </label>
                     </div>
-
-                    <!-- Compiler Status -->
-                    <div id="compilerStatus" class="compiler-status hidden">
-                        <div class="compiler-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progressFill"></div>
+                    <div class="form-group">
+                        <label> AR Content</label>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">Choose how to display your dish in AR</p>
+                        <div class="content-type-selector">
+                            <button type="button" class="content-type-btn active" data-type="upload" onclick="selectContentType('upload')"> Upload File</button>
+                            <button type="button" class="content-type-btn" data-type="library" onclick="selectContentType('library')"> 3D Library</button>
+                            <button type="button" class="content-type-btn" data-type="url" onclick="selectContentType('url')"> From URL</button>
+                        </div>
+                        <div id="uploadSection" class="upload-section-file">
+                            <label class="upload-box" id="arContentBox" for="arContent">
+                                <input type="file" id="arContent" name="arContent" accept="video/*,.glb,.gltf" class="file-input-hidden">
+                                <div class="upload-content">
+                                    <span class="upload-icon"></span>
+                                    <h3>Upload Video or 3D Model</h3>
+                                    <p>.mp4, .webm, .glb, .gltf</p>
+                                </div>
+                                <div class="preview-container" id="contentPreview"></div>
+                            </label>
+                        </div>
+                        <div id="modelLibrary" class="model-library">
+                            <h4> Select a free 3D model:</h4>
+                            <div class="model-grid" id="modelGrid">
+                                <div class="model-card" data-model="https://modelviewer.dev/shared-assets/models/Astronaut.glb" onclick="selectModel(this)">
+                                    <model-viewer src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" auto-rotate camera-controls disable-zoom interaction-prompt="none"></model-viewer>
+                                    <div class="model-name">Demo Figure</div>
+                                    <div class="model-type">Sample 3D</div>
+                                </div>
+                                <div class="model-card" data-model="/models/donut.glb" onclick="selectModel(this)">
+                                    <model-viewer src="/models/donut.glb" auto-rotate camera-controls disable-zoom interaction-prompt="none"></model-viewer>
+                                    <div class="model-name">Toy Car</div>
+                                    <div class="model-type">3D Model</div>
+                                </div>
+                                <div class="model-card" data-model="https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb" onclick="selectModel(this)">
+                                    <model-viewer src="https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb" auto-rotate camera-controls disable-zoom interaction-prompt="none"></model-viewer>
+                                    <div class="model-name">Figure 2</div>
+                                    <div class="model-type">Sample 3D</div>
+                                </div>
                             </div>
-                            <span id="progressText">🔧 Compiling AR target image...</span>
+                            <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);"> <strong>Tip:</strong> Get free 3D food models at <a href="https://poly.pizza/search/food" target="_blank" style="color: var(--accent-cyan);">poly.pizza</a></p>
+                        </div>
+                        <div id="urlSection" class="url-input-section">
+                            <input type="text" id="contentUrl" placeholder="Enter video or 3D model URL (.mp4, .glb)">
+                            <div class="sample-videos">
+                                <h5> Try sample content:</h5>
+                                <div class="sample-video-btns">
+                                    <button type="button" class="sample-video-btn" onclick="setVideoUrl('https://www.w3schools.com/html/mov_bbb.mp4')"> Sample Video</button>
+                                    <button type="button" class="sample-video-btn" onclick="setVideoUrl('https://modelviewer.dev/shared-assets/models/Astronaut.glb')"> 3D Model</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
+                    <input type="hidden" id="selectedModelUrl" name="modelUrl">
+                    <input type="hidden" id="contentType" name="contentSource" value="upload">
+                    <div id="compilerStatus" class="compiler-status hidden">
+                        <div class="compiler-progress">
+                            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                            <span id="progressText"> Compiling AR target image...</span>
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
-                        <span class="btn-text">🚀 Create AR Experience</span>
-                        <span class="btn-loading hidden">⏳ Processing...</span>
+                        <span class="btn-text"> Create AR Experience</span>
+                        <span class="btn-loading hidden"> Processing...</span>
                     </button>
                 </form>
             </section>
-
-            <!-- Menu Items List -->
             <section class="card items-section">
                 <div class="section-header">
-                    <h2>📦 Your Menu Items</h2>
-                    <button class="btn btn-outline" onclick="loadMenuItems()">🔄 Refresh</button>
+                    <h2> Your Menu Items</h2>
+                    <button class="btn btn-outline" onclick="loadMenuItems()"> Refresh</button>
                 </div>
-
                 <div id="menuItemsList" class="items-grid">
-                    <!-- Items will be loaded here -->
-                    <div class="loading-state">
-                        <span class="loading-spinner">⏳</span>
-                        <p>Loading your menu items...</p>
-                    </div>
+                    <div class="loading-state"><span class="loading-spinner"></span><p>Loading your menu items...</p></div>
                 </div>
             </section>
         </main>
     </div>
-
-    <!-- QR Code Modal -->
     <div id="qrModal" class="modal hidden">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeQRModal()">✕</button>
-            <h2 id="qrModalTitle">📱 QR Code</h2>
+            <button class="modal-close" onclick="closeQRModal()"></button>
+            <h2 id="qrModalTitle"> QR Code</h2>
             <div id="qrCodeContainer" class="qr-container"></div>
             <p class="qr-url" id="qrUrl"></p>
             <div class="modal-actions">
-                <button class="btn btn-primary" onclick="downloadQR()">📥 Download</button>
-                <button class="btn btn-outline" onclick="copyLink()">🔗 Copy Link</button>
+                <button class="btn btn-primary" onclick="downloadQR()"> Download</button>
+                <button class="btn btn-outline" onclick="copyLink()"> Copy Link</button>
             </div>
         </div>
     </div>
-
-    <!-- Toast Notifications -->
     <div id="toastContainer" class="toast-container"></div>
-
     <script src="/js/admin.js"></script>
     <script>
+        let selectedModelPath = null;
+        let currentContentType = 'upload';
+        function selectContentType(type) {
+            currentContentType = type;
+            document.getElementById('contentType').value = type;
+            document.querySelectorAll('.content-type-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
+            document.getElementById('uploadSection').classList.toggle('hidden', type !== 'upload');
+            document.getElementById('modelLibrary').classList.toggle('active', type === 'library');
+            document.getElementById('urlSection').classList.toggle('active', type === 'url');
+        }
+        function selectModel(card) {
+            document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedModelPath = card.dataset.model;
+            document.getElementById('selectedModelUrl').value = selectedModelPath;
+            showToast('3D model selected! ', 'success');
+        }
+        function setVideoUrl(url) {
+            document.getElementById('contentUrl').value = url;
+            document.getElementById('selectedModelUrl').value = url;
+            showToast('Sample content loaded! ', 'success');
+        }
         function logout() {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
