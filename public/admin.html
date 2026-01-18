@@ -29,6 +29,10 @@
                     <span class="nav-icon">➕</span>
                     <span>Add New</span>
                 </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <span class="nav-icon">🚪</span>
+                    <span>Logout</span>
+                </a>
             </nav>
         </aside>
 
@@ -60,7 +64,8 @@
 
                     <div class="upload-grid">
                         <!-- Target Image Upload -->
-                        <div class="upload-box" id="targetImageBox">
+                        <label class="upload-box" id="targetImageBox" for="targetImage">
+                            <input type="file" id="targetImage" name="targetImage" accept="image/*" class="file-input-hidden">
                             <div class="upload-content">
                                 <span class="upload-icon">🎯</span>
                                 <h3>Target Image</h3>
@@ -68,10 +73,11 @@
                                 <span class="btn btn-outline upload-btn">Choose Image</span>
                             </div>
                             <div class="preview-container" id="targetPreview"></div>
-                        </div>
+                        </label>
 
                         <!-- AR Content Upload -->
-                        <div class="upload-box" id="arContentBox">
+                        <label class="upload-box" id="arContentBox" for="arContent">
+                            <input type="file" id="arContent" name="arContent" accept="video/*,.glb,.gltf" class="file-input-hidden">
                             <div class="upload-content">
                                 <span class="upload-icon">🎬</span>
                                 <h3>AR Content</h3>
@@ -79,7 +85,7 @@
                                 <span class="btn btn-outline upload-btn">Choose Content</span>
                             </div>
                             <div class="preview-container" id="contentPreview"></div>
-                        </div>
+                        </label>
                     </div>
 
                     <!-- Compiler Status -->
@@ -135,5 +141,12 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <script src="/js/admin.js"></script>
+    <script>
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+    </script>
 </body>
 </html>

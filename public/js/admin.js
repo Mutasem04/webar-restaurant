@@ -1,12 +1,11 @@
 /**
  * WebAR Restaurant - Admin Dashboard JavaScript
- * 
+ *
  * This file handles:
  * 1. File uploads with drag & drop
  * 2. Form submission to create menu items
  * 3. Displaying and managing menu items list
  * 4. QR code display and download
- * 5. Client-side MindAR target compilation (optional)
  */
 
 // ============================================
@@ -17,11 +16,63 @@ let selectedTargetImage = null;
 let selectedARContent = null;
 let currentQRItem = null;
 
+// Get auth token from localStorage
+function getAuthToken() {
+    return localStorage.getItem('token');
+}
+
+// Check if user is logged in
+function checkAuth() {
+    const token = getAuthToken();
+    if (!token) {
+        showToast('Please login to access admin panel', 'error');
+        setTimeout(() => {
+            window.location.href = '/login.html';
+        }, 1500);
+        return false;
+    }
+    return true;
+}
+
+// Helper for authenticated fetch requests
+async function authFetch(url, options = {}) {
+    const token = getAuthToken();
+    if (!token) {
+        throw new Error('Authentication required');
+    }
+    
+    const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+    };
+    
+    // Don't set Content-Type for FormData (let browser set it with boundary)
+    if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
+    
+    const response = await fetch(url, { ...options, headers });
+    
+    if (response.status === 401) {
+        localStorage.removeItem('token');
+        showToast('Session expired. Please login again.', 'error');
+        setTimeout(() => {
+            window.location.href = '/login.html';
+        }, 1500);
+        throw new Error('Session expired');
+    }
+    
+    return response;
+}
+
 // ============================================
 // INITIALIZATION
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Admin JS loaded, initializing...');
+    if (!checkAuth()) return;
+    
     initFileUploads();
     initForm();
     loadMenuItems();
@@ -35,30 +86,28 @@ function initFileUploads() {
     // Target Image Upload
     const targetInput = document.getElementById('targetImage');
     const targetBox = document.getElementById('targetImageBox');
-    
+
     if (!targetInput || !targetBox) {
         console.error('Target upload elements not found');
         return;
     }
-    
+
+    console.log('Setting up target image upload');
+
     targetInput.addEventListener('change', (e) => {
         console.log('Target input changed', e.target.files);
         if (e.target.files && e.target.files[0]) {
             handleFileSelect(e.target.files[0], 'target');
         }
     });
-    
-    // Make entire box clickable
+
+    // Prevent label default when already has file
     targetBox.addEventListener('click', (e) => {
-        console.log('Target box clicked', e.target);
-        // Don't trigger if clicking on remove button or if box has file
-        if (e.target.classList.contains('remove-btn')) return;
-        if (!targetBox.classList.contains('has-file')) {
-            console.log('Opening file picker for target');
-            targetInput.click();
+        if (targetBox.classList.contains('has-file')) {
+            e.preventDefault();
         }
     });
-    
+
     setupDragDrop(targetBox, (file) => {
         if (file.type.startsWith('image/')) {
             handleFileSelect(file, 'target');
@@ -67,39 +116,37 @@ function initFileUploads() {
             showToast('Please drop an image file', 'error');
         }
     });
-    
+
     // AR Content Upload
     const contentInput = document.getElementById('arContent');
     const contentBox = document.getElementById('arContentBox');
-    
+
     if (!contentInput || !contentBox) {
         console.error('Content upload elements not found');
         return;
     }
-    
+
+    console.log('Setting up AR content upload');
+
     contentInput.addEventListener('change', (e) => {
         console.log('Content input changed', e.target.files);
         if (e.target.files && e.target.files[0]) {
             handleFileSelect(e.target.files[0], 'content');
         }
     });
-    
-    // Make entire box clickable
+
+    // Prevent label default when already has file
     contentBox.addEventListener('click', (e) => {
-        console.log('Content box clicked', e.target);
-        // Don't trigger if clicking on remove button or if box has file
-        if (e.target.classList.contains('remove-btn')) return;
-        if (!contentBox.classList.contains('has-file')) {
-            console.log('Opening file picker for content');
-            contentInput.click();
+        if (contentBox.classList.contains('has-file')) {
+            e.preventDefault();
         }
     });
-    
+
     setupDragDrop(contentBox, (file) => {
         const validTypes = ['video/mp4', 'video/webm', 'video/ogg'];
         const validExts = ['.glb', '.gltf'];
         const ext = '.' + file.name.split('.').pop().toLowerCase();
-        
+
         if (validTypes.includes(file.type) || validExts.includes(ext)) {
             handleFileSelect(file, 'content');
             contentInput.files = createFileList(file);
@@ -107,6 +154,8 @@ function initFileUploads() {
             showToast('Please drop a video or 3D model file', 'error');
         }
     });
+
+    console.log('File upload initialization complete');
 }
 
 function setupDragDrop(element, onDrop) {
@@ -116,19 +165,19 @@ function setupDragDrop(element, onDrop) {
             e.stopPropagation();
         });
     });
-    
+
     ['dragenter', 'dragover'].forEach(event => {
         element.addEventListener(event, () => {
             element.classList.add('dragover');
         });
     });
-    
+
     ['dragleave', 'drop'].forEach(event => {
         element.addEventListener(event, () => {
             element.classList.remove('dragover');
         });
     });
-    
+
     element.addEventListener('drop', (e) => {
         const file = e.dataTransfer.files[0];
         if (file) onDrop(file);
@@ -137,22 +186,24 @@ function setupDragDrop(element, onDrop) {
 
 function handleFileSelect(file, type) {
     if (!file) return;
-    
+
+    console.log('handleFileSelect called', type, file.name);
+
     const previewId = type === 'target' ? 'targetPreview' : 'contentPreview';
     const boxId = type === 'target' ? 'targetImageBox' : 'arContentBox';
     const previewContainer = document.getElementById(previewId);
     const uploadBox = document.getElementById(boxId);
-    
+
     // Store reference
     if (type === 'target') {
         selectedTargetImage = file;
     } else {
         selectedARContent = file;
     }
-    
+
     // Create preview
     previewContainer.innerHTML = '';
-    
+
     if (type === 'target' || file.type.startsWith('image/')) {
         // Image preview
         const img = document.createElement('img');
@@ -179,7 +230,7 @@ function handleFileSelect(file, type) {
         placeholder.style.cssText = 'text-align: center; padding: 2rem;';
         previewContainer.appendChild(placeholder);
     }
-    
+
     // Add remove button
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-btn';
@@ -191,11 +242,10 @@ function handleFileSelect(file, type) {
         clearFileSelection(type);
     };
     previewContainer.appendChild(removeBtn);
-    
+
     // Update box state
     uploadBox.classList.add('has-file');
-    uploadBox.querySelector('.upload-content').style.display = 'none';
-    
+
     showToast(`${type === 'target' ? 'Target image' : 'AR content'} selected`, 'success');
 }
 
@@ -203,12 +253,11 @@ function clearFileSelection(type) {
     const previewId = type === 'target' ? 'targetPreview' : 'contentPreview';
     const boxId = type === 'target' ? 'targetImageBox' : 'arContentBox';
     const inputId = type === 'target' ? 'targetImage' : 'arContent';
-    
+
     document.getElementById(previewId).innerHTML = '';
     document.getElementById(boxId).classList.remove('has-file');
-    document.getElementById(boxId).querySelector('.upload-content').style.display = 'flex';
     document.getElementById(inputId).value = '';
-    
+
     if (type === 'target') {
         selectedTargetImage = null;
     } else {
@@ -229,73 +278,73 @@ function createFileList(file) {
 function initForm() {
     const form = document.getElementById('uploadForm');
     const submitBtn = document.getElementById('submitBtn');
-    
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         // Validate
         if (!selectedTargetImage) {
             showToast('Please select a target image', 'error');
             return;
         }
-        
+
         if (!selectedARContent) {
             showToast('Please select AR content', 'error');
             return;
         }
-        
+
         // Disable button
         submitBtn.disabled = true;
-        
+
         try {
             // Show compiler status
             showCompilerStatus('Uploading files...');
             updateProgress(20);
-            
+
             // Prepare form data
             const formData = new FormData();
             formData.append('name', document.getElementById('itemName').value);
             formData.append('description', document.getElementById('itemDescription').value);
             formData.append('targetImage', selectedTargetImage);
             formData.append('arContent', selectedARContent);
-            
+
             updateProgress(40);
             showCompilerStatus('Processing target image...');
-            
-            // Submit to server
-            const response = await fetch('/api/items', {
+
+            // Submit to server with auth
+            const response = await authFetch('/api/items', {
                 method: 'POST',
                 body: formData
             });
-            
+
             updateProgress(80);
             showCompilerStatus('Generating QR code...');
-            
+
             const result = await response.json();
-            
+
             if (result.success) {
                 updateProgress(100);
                 showCompilerStatus('Complete!');
-                
+
                 setTimeout(() => {
                     hideCompilerStatus();
                     showToast('Menu item created successfully!', 'success');
-                    
+
                     // Reset form
                     form.reset();
                     clearFileSelection('target');
                     clearFileSelection('content');
-                    
+
                     // Reload items list
                     loadMenuItems();
-                    
+
                     // Show QR code
                     showQRModal(result.item);
                 }, 500);
             } else {
                 throw new Error(result.error || 'Failed to create item');
             }
-            
+
         } catch (error) {
             hideCompilerStatus();
             showToast(error.message, 'error');
@@ -327,11 +376,14 @@ function updateProgress(percent) {
 
 async function loadMenuItems() {
     const container = document.getElementById('menuItemsList');
-    
+
     try {
-        const response = await fetch('/api/items');
-        const items = await response.json();
+        const response = await authFetch('/api/items');
+        const data = await response.json();
         
+        // Handle both array and object with items property
+        const items = Array.isArray(data) ? data : (data.items || []);
+
         if (items.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -342,10 +394,10 @@ async function loadMenuItems() {
             `;
             return;
         }
-        
+
         container.innerHTML = items.map(item => `
             <div class="menu-item-card" data-id="${item.id}">
-                <img class="item-image" src="${item.targetImage}" alt="${item.name}" 
+                <img class="item-image" src="${item.targetImage}" alt="${escapeHtml(item.name)}"
                      onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23252542%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2230%22>🍽️</text></svg>'">
                 <div class="item-details">
                     <h3>${escapeHtml(item.name)}</h3>
@@ -365,13 +417,13 @@ async function loadMenuItems() {
                 </div>
             </div>
         `).join('');
-        
+
     } catch (error) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon">⚠️</div>
                 <h3>Error loading items</h3>
-                <p>${error.message}</p>
+                <p>${escapeHtml(error.message)}</p>
                 <button class="btn btn-outline" onclick="loadMenuItems()">Try Again</button>
             </div>
         `;
@@ -380,14 +432,14 @@ async function loadMenuItems() {
 
 async function deleteItem(id) {
     if (!confirm('Are you sure you want to delete this item?')) return;
-    
+
     try {
-        const response = await fetch(`/api/items/${id}`, {
+        const response = await authFetch(`/api/items/${id}`, {
             method: 'DELETE'
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showToast('Item deleted successfully', 'success');
             loadMenuItems();
@@ -409,20 +461,17 @@ function showQRModal(item) {
     const title = document.getElementById('qrModalTitle');
     const container = document.getElementById('qrCodeContainer');
     const url = document.getElementById('qrUrl');
-    
+
     title.textContent = item.name;
     url.textContent = item.viewerUrl;
-    
-    // Fetch QR code
-    fetch(`/api/items/${item.id}/qrcode`)
-        .then(res => res.json())
-        .then(data => {
-            container.innerHTML = `<img src="${data.qrCode}" alt="QR Code">`;
-        })
-        .catch(() => {
-            container.innerHTML = `<p style="color: #ef4444;">Failed to load QR code</p>`;
-        });
-    
+
+    // Use qrCode from item if available
+    if (item.qrCode) {
+        container.innerHTML = `<img src="${item.qrCode}" alt="QR Code">`;
+    } else {
+        container.innerHTML = `<p style="padding: 2rem; color: #666;">QR Code not available</p>`;
+    }
+
     modal.classList.remove('hidden');
 }
 
@@ -432,71 +481,64 @@ function closeQRModal() {
 }
 
 function downloadQR() {
-    if (!currentQRItem) return;
-    
-    const img = document.querySelector('#qrCodeContainer img');
-    if (!img) return;
-    
+    if (!currentQRItem || !currentQRItem.qrCode) {
+        showToast('QR code not available', 'error');
+        return;
+    }
+
     const link = document.createElement('a');
-    link.download = `qr-${currentQRItem.name.toLowerCase().replace(/\s+/g, '-')}.png`;
-    link.href = img.src;
+    link.href = currentQRItem.qrCode;
+    link.download = `qr-${currentQRItem.name.replace(/[^a-z0-9]/gi, '-')}.png`;
     link.click();
-    
-    showToast('QR code downloaded!', 'success');
 }
 
 function copyLink() {
     if (!currentQRItem) return;
-    
+
     navigator.clipboard.writeText(currentQRItem.viewerUrl)
         .then(() => showToast('Link copied to clipboard!', 'success'))
         .catch(() => showToast('Failed to copy link', 'error'));
 }
 
-// Close modal on outside click
-document.getElementById('qrModal').addEventListener('click', (e) => {
-    if (e.target.id === 'qrModal') {
-        closeQRModal();
-    }
-});
-
 // ============================================
-// TOAST NOTIFICATIONS
-// ============================================
-
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    
-    const icons = {
-        success: '✅',
-        error: '❌',
-        info: 'ℹ️',
-        warning: '⚠️'
-    };
-    
-    toast.innerHTML = `
-        <span class="toast-icon">${icons[type] || icons.info}</span>
-        <span>${escapeHtml(message)}</span>
-    `;
-    
-    container.appendChild(toast);
-    
-    // Auto remove after 4 seconds
-    setTimeout(() => {
-        toast.style.animation = 'slideIn 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
-}
-
-// ============================================
-// UTILITY FUNCTIONS
+// UTILITIES
 // ============================================
 
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+        <span class="toast-message">${escapeHtml(message)}</span>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Close modal on background click
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('qrModal');
+    if (e.target === modal) {
+        closeQRModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeQRModal();
+    }
+});

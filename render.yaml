@@ -13,3 +13,5 @@ services:
         generateValue: true
       - key: DATA_DIR
         value: /opt/render/project/src
+      - key: BASE_URL
+        value: https://webar-restaurant.onrender.com
