@@ -40,6 +40,15 @@ function initFileUploads() {
         handleFileSelect(e.target.files[0], 'target');
     });
     
+    // Make entire box clickable
+    targetBox.addEventListener('click', (e) => {
+        // Don't trigger if clicking on remove button or if box has file
+        if (e.target.classList.contains('remove-btn')) return;
+        if (!targetBox.classList.contains('has-file')) {
+            targetInput.click();
+        }
+    });
+    
     setupDragDrop(targetBox, (file) => {
         if (file.type.startsWith('image/')) {
             handleFileSelect(file, 'target');
@@ -55,6 +64,15 @@ function initFileUploads() {
     
     contentInput.addEventListener('change', (e) => {
         handleFileSelect(e.target.files[0], 'content');
+    });
+    
+    // Make entire box clickable
+    contentBox.addEventListener('click', (e) => {
+        // Don't trigger if clicking on remove button or if box has file
+        if (e.target.classList.contains('remove-btn')) return;
+        if (!contentBox.classList.contains('has-file')) {
+            contentInput.click();
+        }
     });
     
     setupDragDrop(contentBox, (file) => {
@@ -146,7 +164,9 @@ function handleFileSelect(file, type) {
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-btn';
     removeBtn.innerHTML = '✕';
+    removeBtn.type = 'button';  // Prevent form submission
     removeBtn.onclick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
         clearFileSelection(type);
     };
