@@ -36,15 +36,25 @@ function initFileUploads() {
     const targetInput = document.getElementById('targetImage');
     const targetBox = document.getElementById('targetImageBox');
     
+    if (!targetInput || !targetBox) {
+        console.error('Target upload elements not found');
+        return;
+    }
+    
     targetInput.addEventListener('change', (e) => {
-        handleFileSelect(e.target.files[0], 'target');
+        console.log('Target input changed', e.target.files);
+        if (e.target.files && e.target.files[0]) {
+            handleFileSelect(e.target.files[0], 'target');
+        }
     });
     
     // Make entire box clickable
     targetBox.addEventListener('click', (e) => {
+        console.log('Target box clicked', e.target);
         // Don't trigger if clicking on remove button or if box has file
         if (e.target.classList.contains('remove-btn')) return;
         if (!targetBox.classList.contains('has-file')) {
+            console.log('Opening file picker for target');
             targetInput.click();
         }
     });
@@ -62,15 +72,25 @@ function initFileUploads() {
     const contentInput = document.getElementById('arContent');
     const contentBox = document.getElementById('arContentBox');
     
+    if (!contentInput || !contentBox) {
+        console.error('Content upload elements not found');
+        return;
+    }
+    
     contentInput.addEventListener('change', (e) => {
-        handleFileSelect(e.target.files[0], 'content');
+        console.log('Content input changed', e.target.files);
+        if (e.target.files && e.target.files[0]) {
+            handleFileSelect(e.target.files[0], 'content');
+        }
     });
     
     // Make entire box clickable
     contentBox.addEventListener('click', (e) => {
+        console.log('Content box clicked', e.target);
         // Don't trigger if clicking on remove button or if box has file
         if (e.target.classList.contains('remove-btn')) return;
         if (!contentBox.classList.contains('has-file')) {
+            console.log('Opening file picker for content');
             contentInput.click();
         }
     });

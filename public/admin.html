@@ -54,6 +54,10 @@
                         <textarea id="itemDescription" name="description" placeholder="Describe the dish..."></textarea>
                     </div>
 
+                    <!-- Hidden file inputs (outside boxes for better click handling) -->
+                    <input type="file" id="targetImage" name="targetImage" accept="image/*" style="display:none;">
+                    <input type="file" id="arContent" name="arContent" accept="video/*,.glb,.gltf" style="display:none;">
+
                     <div class="upload-grid">
                         <!-- Target Image Upload -->
                         <div class="upload-box" id="targetImageBox">
@@ -61,10 +65,7 @@
                                 <span class="upload-icon">🎯</span>
                                 <h3>Target Image</h3>
                                 <p>Upload the menu item photo<br>(This will be tracked by AR)</p>
-                                <input type="file" id="targetImage" name="targetImage" accept="image/*" hidden>
-                                <button type="button" class="btn btn-outline" onclick="document.getElementById('targetImage').click()">
-                                    Choose Image
-                                </button>
+                                <span class="btn btn-outline upload-btn">Choose Image</span>
                             </div>
                             <div class="preview-container" id="targetPreview"></div>
                         </div>
@@ -75,10 +76,7 @@
                                 <span class="upload-icon">🎬</span>
                                 <h3>AR Content</h3>
                                 <p>Upload video or 3D model<br>(.mp4, .webm, .glb, .gltf)</p>
-                                <input type="file" id="arContent" name="arContent" accept="video/*,.glb,.gltf" hidden>
-                                <button type="button" class="btn btn-outline" onclick="document.getElementById('arContent').click()">
-                                    Choose Content
-                                </button>
+                                <span class="btn btn-outline upload-btn">Choose Content</span>
                             </div>
                             <div class="preview-container" id="contentPreview"></div>
                         </div>
