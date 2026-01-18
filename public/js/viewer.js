@@ -3,10 +3,11 @@
  * 
  * This file handles:
  * 1. Loading menu item data from the server
- * 2. Initializing the MindAR scene
- * 3. Camera permission handling
- * 4. AR target tracking events
- * 5. Displaying video or 3D content on target
+ * 2. Compiling target image to .mind format in browser
+ * 3. Initializing the MindAR scene
+ * 4. Camera permission handling
+ * 5. AR target tracking events
+ * 6. Displaying video or 3D content on target
  */
 
 // ============================================
@@ -16,6 +17,7 @@
 let menuItem = null;
 let arScene = null;
 let isARActive = false;
+let compiledMindData = null;
 
 // ============================================
 // INITIALIZATION
@@ -55,6 +57,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
+        // Compile target image to .mind format
+        updateLoadingText('Preparing AR target (this may take a moment)...');
+        compiledMindData = await compileTargetImage(menuItem.targetImage);
+        
+        if (!compiledMindData) {
+            showError('Compilation Failed', 'Could not process the target image for AR.');
+            return;
+        }
+        
         // Initialize AR
         updateLoadingText('Starting AR experience...');
         await initAR();
@@ -80,6 +91,75 @@ async function loadMenuItem(id) {
         console.error('Failed to load menu item:', error);
         return null;
     }
+}
+
+// ============================================
+// TARGET IMAGE COMPILATION
+// ============================================
+
+async function compileTargetImage(imageUrl) {
+    try {
+        console.log('Compiling target image:', imageUrl);
+        
+        // Load the image
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error('Failed to load target image'));
+            img.src = imageUrl;
+        });
+        
+        console.log('Image loaded:', img.width, 'x', img.height);
+        
+        // Use MindAR's image compiler
+        // The compiler is included in the MindAR CDN
+        if (typeof MINDAR === 'undefined' || !MINDAR.IMAGE) {
+            // Load MindAR compiler dynamically if not available
+            await loadScript('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js');
+        }
+        
+        // Compile the image using MindAR's compiler
+        const compiler = new MINDAR.IMAGE.Compiler();
+        await compiler.compileImageTargets([img], (progress) => {
+            const percent = Math.round(progress * 100);
+            updateLoadingText(`Processing target image... ${percent}%`);
+        });
+        
+        // Get the compiled data as a data URL
+        const exportedData = await compiler.exportData();
+        
+        // Convert to blob URL for use in A-Frame
+        const blob = new Blob([exportedData], { type: 'application/octet-stream' });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        console.log('Target image compiled successfully');
+        return blobUrl;
+        
+    } catch (error) {
+        console.error('Failed to compile target image:', error);
+        
+        // Fallback: try using the image directly (may not work well)
+        console.log('Attempting fallback with raw image...');
+        return null;
+    }
+}
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        // Check if already loaded
+        if (document.querySelector(`script[src="${src}"]`)) {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
 }
 
 // ============================================
@@ -131,9 +211,7 @@ async function initAR() {
         showInstructions();
     });
     
-    // Handle AR target found/lost events
-    const arSystem = arScene.systems['mindar-image-system'];
-    
+    // Handle AR events
     arScene.addEventListener('arReady', () => {
         console.log('MindAR ready');
         isARActive = true;
@@ -141,7 +219,7 @@ async function initAR() {
     
     arScene.addEventListener('arError', (e) => {
         console.error('MindAR error:', e);
-        showError('AR Error', 'Failed to initialize augmented reality.');
+        showError('AR Error', 'Failed to initialize augmented reality. Please try refreshing the page.');
     });
     
     // Setup target event listeners
@@ -157,73 +235,20 @@ async function initAR() {
 function createARScene() {
     /**
      * Create the A-Frame AR scene with MindAR
-     * 
-     * Key components:
-     * - mindar-image: The AR system with the compiled target image (.mind file)
-     * - mindar-image-target: The trackable target (index 0 = first target)
-     * - a-video or a-gltf-model: The content to display on the target
-     * 
-     * TO SWAP ASSETS:
-     * 1. Change the 'imageTargetSrc' to point to your .mind file
-     * 2. For videos: Update the 'src' attribute of a-video
-     * 3. For 3D models: Use a-gltf-model instead of a-video
-     */
-    
-    // Use the target image directly if .mind file is not compiled
-    // In production, use the compiled .mind file for better tracking
-    const targetSrc = menuItem.mindFile || menuItem.targetImage;
-    
-    // Determine content element based on type
-    let contentElement = '';
-    
-    if (menuItem.contentType === '3d') {
-        // 3D Model (GLB/GLTF)
-        contentElement = `
-            <a-gltf-model
-                src="${menuItem.arContent}"
-                position="0 0 0"
-                scale="0.5 0.5 0.5"
-                rotation="0 0 0"
-                animation="property: rotation; to: 0 360 0; dur: 10000; loop: true; easing: linear">
-            </a-gltf-model>
-        `;
-    } else {
-        // Video content
-        contentElement = `
-            <a-video
-                src="${menuItem.arContent}"
-                position="0 0 0"
-                width="1"
-                height="0.56"
-                rotation="0 0 0"
-                play-on-target>
-            </a-video>
-        `;
-    }
-    
-    /**
-     * IMPORTANT: For production use, you need to:
-     * 
-     * 1. Compile the target image to .mind format using MindAR's compiler:
-     *    - Browser compiler: https://hiukim.github.io/mind-ar-js-doc/tools/compile/
-     *    - Or use the server-side compiler
-     * 
-     * 2. Replace 'imageTargetSrc' with the path to your .mind file
-     * 
-     * 3. Adjust the scale and position of content to fit your needs:
-     *    - For videos: width/height in meters
-     *    - For 3D models: scale values
+     * Using the compiled .mind data from the browser compiler
      */
     
     return `
         <a-scene
-            mindar-image="imageTargetSrc: ${menuItem.targetImage}; 
+            mindar-image="imageTargetSrc: ${compiledMindData}; 
                           autoStart: true;
                           uiLoading: no;
                           uiScanning: no;
                           uiError: no;
-                          filterMinCF: 0.001;
-                          filterBeta: 10"
+                          filterMinCF: 0.0001;
+                          filterBeta: 1000;
+                          missTolerance: 5;
+                          warmupTolerance: 5"
             color-space="sRGB"
             renderer="colorManagement: true; physicallyCorrectLights: true"
             vr-mode-ui="enabled: false"
@@ -274,7 +299,10 @@ function onTargetFound() {
     console.log('Target found!');
     
     // Hide scanning indicator
-    document.getElementById('scanningIndicator').classList.add('hidden');
+    const scanningIndicator = document.getElementById('scanningIndicator');
+    if (scanningIndicator) {
+        scanningIndicator.classList.add('hidden');
+    }
     
     // Play video if content is video
     if (menuItem.contentType === 'video') {
@@ -294,7 +322,10 @@ function onTargetLost() {
     console.log('Target lost');
     
     // Show scanning indicator
-    document.getElementById('scanningIndicator').classList.remove('hidden');
+    const scanningIndicator = document.getElementById('scanningIndicator');
+    if (scanningIndicator) {
+        scanningIndicator.classList.remove('hidden');
+    }
     
     // Pause video
     if (menuItem.contentType === 'video') {
@@ -310,58 +341,85 @@ function onTargetLost() {
 // ============================================
 
 function updateLoadingText(text) {
-    document.getElementById('loadingText').textContent = text;
+    const loadingText = document.getElementById('loadingText');
+    if (loadingText) {
+        loadingText.textContent = text;
+    }
 }
 
 function hideLoading() {
-    document.getElementById('loadingScreen').classList.add('hidden');
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen) {
+        loadingScreen.classList.add('hidden');
+    }
 }
 
 function showUI() {
-    document.getElementById('arContainer').classList.remove('hidden');
-    document.getElementById('uiOverlay').classList.remove('hidden');
+    const arContainer = document.getElementById('arContainer');
+    const uiOverlay = document.getElementById('uiOverlay');
+    if (arContainer) arContainer.classList.remove('hidden');
+    if (uiOverlay) uiOverlay.classList.remove('hidden');
 }
 
 function showInstructions() {
-    document.getElementById('instructionsOverlay').classList.remove('hidden');
+    const instructionsOverlay = document.getElementById('instructionsOverlay');
+    if (instructionsOverlay) {
+        instructionsOverlay.classList.remove('hidden');
+    }
 }
 
 function hideInstructions() {
-    document.getElementById('instructionsOverlay').classList.add('hidden');
+    const instructionsOverlay = document.getElementById('instructionsOverlay');
+    if (instructionsOverlay) {
+        instructionsOverlay.classList.add('hidden');
+    }
 }
 
 function showError(title, message) {
-    document.getElementById('loadingScreen').classList.add('hidden');
-    document.getElementById('errorScreen').classList.remove('hidden');
-    document.getElementById('errorTitle').textContent = title;
-    document.getElementById('errorMessage').textContent = message;
+    const loadingScreen = document.getElementById('loadingScreen');
+    const errorScreen = document.getElementById('errorScreen');
+    const errorTitle = document.getElementById('errorTitle');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    if (loadingScreen) loadingScreen.classList.add('hidden');
+    if (errorScreen) errorScreen.classList.remove('hidden');
+    if (errorTitle) errorTitle.textContent = title;
+    if (errorMessage) errorMessage.textContent = message;
 }
 
 function showFallback() {
-    document.getElementById('loadingScreen').classList.add('hidden');
-    document.getElementById('fallbackView').classList.remove('hidden');
-    document.getElementById('fallbackItemName').textContent = menuItem.name;
-    document.getElementById('fallbackDescription').textContent = menuItem.description || '';
+    const loadingScreen = document.getElementById('loadingScreen');
+    const fallbackView = document.getElementById('fallbackView');
     
+    if (loadingScreen) loadingScreen.classList.add('hidden');
+    if (fallbackView) fallbackView.classList.remove('hidden');
+    
+    const fallbackItemName = document.getElementById('fallbackItemName');
+    const fallbackDescription = document.getElementById('fallbackDescription');
     const mediaContainer = document.getElementById('fallbackMedia');
     
-    if (menuItem.contentType === 'video') {
-        mediaContainer.innerHTML = `
-            <video controls autoplay loop muted playsinline style="max-width: 100%; border-radius: 8px;">
-                <source src="${menuItem.arContent}" type="video/mp4">
-            </video>
-        `;
-    } else {
-        // For 3D models, show model-viewer or placeholder
-        mediaContainer.innerHTML = `
-            <div style="padding: 2rem; text-align: center;">
-                <span style="font-size: 4rem;">📦</span>
-                <p style="margin-top: 1rem; color: #a0aec0;">3D Model Preview</p>
-                <p style="font-size: 0.875rem; color: #666;">
-                    Use a device with camera access to view in AR
-                </p>
-            </div>
-        `;
+    if (fallbackItemName) fallbackItemName.textContent = menuItem.name;
+    if (fallbackDescription) fallbackDescription.textContent = menuItem.description || '';
+    
+    if (mediaContainer) {
+        if (menuItem.contentType === 'video') {
+            mediaContainer.innerHTML = `
+                <video controls autoplay loop muted playsinline style="max-width: 100%; border-radius: 8px;">
+                    <source src="${menuItem.arContent}" type="video/mp4">
+                </video>
+            `;
+        } else {
+            // For 3D models, show model-viewer or placeholder
+            mediaContainer.innerHTML = `
+                <div style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 4rem;">📦</span>
+                    <p style="margin-top: 1rem; color: #a0aec0;">3D Model Preview</p>
+                    <p style="font-size: 0.875rem; color: #666;">
+                        Use a device with camera access to view in AR
+                    </p>
+                </div>
+            `;
+        }
     }
 }
 
@@ -370,10 +428,12 @@ function showFallback() {
 // ============================================
 
 // Component to handle video playback on target
-AFRAME.registerComponent('play-on-target', {
-    init: function() {
-        this.el.addEventListener('materialvideoloadeddata', () => {
-            console.log('Video loaded');
-        });
-    }
-});
+if (typeof AFRAME !== 'undefined') {
+    AFRAME.registerComponent('play-on-target', {
+        init: function() {
+            this.el.addEventListener('materialvideoloadeddata', () => {
+                console.log('Video loaded');
+            });
+        }
+    });
+}

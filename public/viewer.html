@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Viewer - WebAR Restaurant</title>
+    <title>AR Menu Viewer</title>
     
-    <!-- MindAR.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+    <!-- MindAR with A-Frame -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
@@ -14,81 +13,73 @@
 </head>
 <body>
     <!-- Loading Screen -->
-    <div id="loadingScreen" class="loading-screen">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <h2>Loading AR Experience</h2>
-            <p id="loadingText">Preparing your augmented reality view...</p>
-            <div class="loading-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="loadingProgress"></div>
-                </div>
-            </div>
+    <div id="loadingScreen" class="screen">
+        <div class="loader">
+            <div class="spinner"></div>
+            <p id="loadingText">Initializing AR...</p>
         </div>
     </div>
-
+    
     <!-- Error Screen -->
-    <div id="errorScreen" class="error-screen hidden">
+    <div id="errorScreen" class="screen hidden">
         <div class="error-content">
             <span class="error-icon">⚠️</span>
-            <h2 id="errorTitle">Oops!</h2>
-            <p id="errorMessage">Something went wrong.</p>
-            <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
-            <a href="/" class="btn btn-outline">Go Home</a>
+            <h2 id="errorTitle">Error</h2>
+            <p id="errorMessage">Something went wrong</p>
+            <button onclick="location.reload()" class="btn-retry">Try Again</button>
         </div>
     </div>
-
+    
     <!-- Instructions Overlay -->
-    <div id="instructionsOverlay" class="instructions-overlay hidden">
+    <div id="instructionsOverlay" class="overlay hidden">
         <div class="instructions-content">
-            <button class="close-btn" onclick="hideInstructions()">✕</button>
-            <span class="instructions-icon">📱</span>
-            <h2>Point Camera at Menu Item</h2>
-            <div class="target-preview">
-                <img id="targetPreviewImg" src="" alt="Target Image">
+            <h3>How to View AR</h3>
+            <div class="instruction-step">
+                <span class="step-number">1</span>
+                <p>Point your camera at the target image</p>
             </div>
-            <p>Look for this image on your menu and point your camera at it</p>
-            <button class="btn btn-primary" onclick="hideInstructions()">Got it!</button>
+            <div class="instruction-step">
+                <span class="step-number">2</span>
+                <p>Hold steady until AR content appears</p>
+            </div>
+            <div class="target-preview">
+                <p>Target Image:</p>
+                <img id="targetPreviewImg" src="" alt="Target">
+            </div>
+            <button onclick="hideInstructions()" class="btn-start">Got it!</button>
         </div>
     </div>
-
-    <!-- AR Scene Container -->
-    <div id="arContainer" class="ar-container hidden">
-        <!-- A-Frame AR Scene - Will be dynamically created -->
+    
+    <!-- AR Container -->
+    <div id="arContainer" class="hidden">
+        <!-- A-Frame scene will be injected here -->
     </div>
-
+    
     <!-- UI Overlay -->
-    <div id="uiOverlay" class="ui-overlay hidden">
-        <header class="viewer-header">
-            <a href="/" class="back-btn">←</a>
+    <div id="uiOverlay" class="hidden">
+        <div class="top-bar">
             <h1 id="itemName">Menu Item</h1>
-            <button class="info-btn" onclick="showInstructions()">?</button>
-        </header>
-
-        <div class="scanning-indicator" id="scanningIndicator">
-            <div class="scanning-animation"></div>
-            <span>Scanning for target...</span>
-        </div>
-
-        <footer class="viewer-footer">
             <p id="itemDescription"></p>
-        </footer>
+        </div>
+        <div id="scanningIndicator" class="scanning-indicator">
+            <div class="scan-animation"></div>
+            <p>Point camera at target image</p>
+        </div>
+        <div class="bottom-bar">
+            <button onclick="showInstructions()" class="btn-help">?</button>
+        </div>
     </div>
-
-    <!-- Fallback for no WebGL/Camera -->
-    <div id="fallbackView" class="fallback-view hidden">
+    
+    <!-- Fallback View (no camera) -->
+    <div id="fallbackView" class="screen hidden">
         <div class="fallback-content">
             <h2 id="fallbackItemName">Menu Item</h2>
-            <div class="fallback-media" id="fallbackMedia">
-                <!-- Video or 3D preview will go here -->
-            </div>
             <p id="fallbackDescription"></p>
-            <p class="fallback-note">
-                📱 For the full AR experience, please use a device with camera access.
-            </p>
+            <div id="fallbackMedia"></div>
+            <p class="fallback-note">Camera access required for full AR experience</p>
         </div>
     </div>
-
+    
     <script src="/js/viewer.js"></script>
 </body>
 </html>
