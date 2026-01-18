@@ -6,7 +6,6 @@
  * 2. Form submission to create menu items
  * 3. Displaying and managing menu items list
  * 4. QR code display and download
- * 5. Client-side MindAR target compilation (optional)
  */
 
 // ============================================
@@ -28,7 +27,7 @@ function checkAuth() {
     if (!token) {
         showToast('Please login to access admin panel', 'error');
         setTimeout(() => {
-            window.location.href = '/login';
+            window.location.href = '/login.html';
         }, 1500);
         return false;
     }
@@ -58,7 +57,7 @@ async function authFetch(url, options = {}) {
         localStorage.removeItem('token');
         showToast('Session expired. Please login again.', 'error');
         setTimeout(() => {
-            window.location.href = '/login';
+            window.location.href = '/login.html';
         }, 1500);
         throw new Error('Session expired');
     }
@@ -102,14 +101,10 @@ function initFileUploads() {
         }
     });
 
-    // Make entire box clickable
+    // Prevent label default when already has file
     targetBox.addEventListener('click', (e) => {
-        console.log('Target box clicked', e.target.tagName, e.target.className);
-        // Don't trigger if clicking on remove button or if box has file
-        if (e.target.classList.contains('remove-btn')) return;
-        if (!targetBox.classList.contains('has-file')) {
-            console.log('Opening file picker for target');
-            targetInput.click();
+        if (targetBox.classList.contains('has-file')) {
+            e.preventDefault();
         }
     });
 
@@ -140,14 +135,10 @@ function initFileUploads() {
         }
     });
 
-    // Make entire box clickable
+    // Prevent label default when already has file
     contentBox.addEventListener('click', (e) => {
-        console.log('Content box clicked', e.target.tagName, e.target.className);
-        // Don't trigger if clicking on remove button or if box has file
-        if (e.target.classList.contains('remove-btn')) return;
-        if (!contentBox.classList.contains('has-file')) {
-            console.log('Opening file picker for content');
-            contentInput.click();
+        if (contentBox.classList.contains('has-file')) {
+            e.preventDefault();
         }
     });
 
@@ -254,7 +245,6 @@ function handleFileSelect(file, type) {
 
     // Update box state
     uploadBox.classList.add('has-file');
-    uploadBox.querySelector('.upload-content').style.display = 'none';
 
     showToast(`${type === 'target' ? 'Target image' : 'AR content'} selected`, 'success');
 }
@@ -266,7 +256,6 @@ function clearFileSelection(type) {
 
     document.getElementById(previewId).innerHTML = '';
     document.getElementById(boxId).classList.remove('has-file');
-    document.getElementById(boxId).querySelector('.upload-content').style.display = 'flex';
     document.getElementById(inputId).value = '';
 
     if (type === 'target') {
@@ -408,7 +397,7 @@ async function loadMenuItems() {
 
         container.innerHTML = items.map(item => `
             <div class="menu-item-card" data-id="${item.id}">
-                <img class="item-image" src="${item.targetImage}" alt="${item.name}"
+                <img class="item-image" src="${item.targetImage}" alt="${escapeHtml(item.name)}"
                      onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23252542%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2230%22>🍽️</text></svg>'">
                 <div class="item-details">
                     <h3>${escapeHtml(item.name)}</h3>
@@ -434,7 +423,7 @@ async function loadMenuItems() {
             <div class="empty-state">
                 <div class="empty-icon">⚠️</div>
                 <h3>Error loading items</h3>
-                <p>${error.message}</p>
+                <p>${escapeHtml(error.message)}</p>
                 <button class="btn btn-outline" onclick="loadMenuItems()">Try Again</button>
             </div>
         `;
@@ -476,18 +465,11 @@ function showQRModal(item) {
     title.textContent = item.name;
     url.textContent = item.viewerUrl;
 
-    // Use qrCode from item if available, otherwise fetch
+    // Use qrCode from item if available
     if (item.qrCode) {
         container.innerHTML = `<img src="${item.qrCode}" alt="QR Code">`;
     } else {
-        authFetch(`/api/items/${item.id}/qrcode`)
-            .then(res => res.json())
-            .then(data => {
-                container.innerHTML = `<img src="${data.qrCode}" alt="QR Code">`;
-            })
-            .catch(() => {
-                container.innerHTML = `<p style="color: #ef4444;">Failed to load QR code</p>`;
-            });
+        container.innerHTML = `<p style="padding: 2rem; color: #666;">QR Code not available</p>`;
     }
 
     modal.classList.remove('hidden');
@@ -499,17 +481,15 @@ function closeQRModal() {
 }
 
 function downloadQR() {
-    if (!currentQRItem) return;
-
-    const img = document.querySelector('#qrCodeContainer img');
-    if (!img) return;
+    if (!currentQRItem || !currentQRItem.qrCode) {
+        showToast('QR code not available', 'error');
+        return;
+    }
 
     const link = document.createElement('a');
-    link.download = `qr-${currentQRItem.name.toLowerCase().replace(/\s+/g, '-')}.png`;
-    link.href = img.src;
+    link.href = currentQRItem.qrCode;
+    link.download = `qr-${currentQRItem.name.replace(/[^a-z0-9]/gi, '-')}.png`;
     link.click();
-
-    showToast('QR code downloaded!', 'success');
 }
 
 function copyLink() {
@@ -520,50 +500,45 @@ function copyLink() {
         .catch(() => showToast('Failed to copy link', 'error'));
 }
 
-// Close modal on outside click
-document.getElementById('qrModal').addEventListener('click', (e) => {
-    if (e.target.id === 'qrModal') {
-        closeQRModal();
-    }
-});
-
 // ============================================
-// TOAST NOTIFICATIONS
-// ============================================
-
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-
-    const icons = {
-        success: '✅',
-        error: '❌',
-        info: 'ℹ️',
-        warning: '⚠️'
-    };
-
-    toast.innerHTML = `
-        <span class="toast-icon">${icons[type] || icons.info}</span>
-        <span>${escapeHtml(message)}</span>
-    `;
-
-    container.appendChild(toast);
-
-    // Auto remove after 4 seconds
-    setTimeout(() => {
-        toast.style.animation = 'slideIn 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
-}
-
-// ============================================
-// UTILITY FUNCTIONS
+// UTILITIES
 // ============================================
 
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+        <span class="toast-message">${escapeHtml(message)}</span>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Close modal on background click
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('qrModal');
+    if (e.target === modal) {
+        closeQRModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeQRModal();
+    }
+});

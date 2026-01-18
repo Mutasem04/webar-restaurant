@@ -200,6 +200,18 @@ body {
     cursor: pointer;
 }
 
+.file-input-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .upload-box:hover {
     border-color: var(--accent-cyan);
     background: rgba(0, 217, 255, 0.05);
@@ -255,6 +267,10 @@ body {
 
 .upload-box.has-file .preview-container {
     display: flex;
+}
+
+.upload-box.has-file .upload-content {
+    display: none;
 }
 
 .preview-container img,
@@ -523,40 +539,48 @@ body {
     max-width: 400px;
     width: 100%;
     position: relative;
+    text-align: center;
 }
 
 .modal-close {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    background: none;
+    background: transparent;
     border: none;
     color: var(--text-secondary);
     font-size: 1.5rem;
     cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
 }
 
 .modal-close:hover {
     color: var(--text-primary);
 }
 
+.modal-content h2 {
+    margin-bottom: 1.5rem;
+    padding: 0;
+    border: none;
+}
+
 .qr-container {
-    text-align: center;
-    padding: 2rem;
     background: white;
+    padding: 1rem;
     border-radius: var(--radius);
-    margin: 1.5rem 0;
+    margin-bottom: 1rem;
 }
 
 .qr-container img {
     max-width: 100%;
-    height: auto;
+    display: block;
 }
 
 .qr-url {
-    word-break: break-all;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
+    word-break: break-all;
     margin-bottom: 1.5rem;
 }
 
@@ -577,7 +601,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    z-index: 2000;
+    z-index: 1100;
 }
 
 .toast {
@@ -588,20 +612,8 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    min-width: 300px;
     animation: slideIn 0.3s ease;
-    box-shadow: var(--shadow);
-}
-
-.toast.success {
-    border-color: var(--success);
-}
-
-.toast.error {
-    border-color: var(--danger);
-}
-
-.toast.warning {
-    border-color: var(--warning);
 }
 
 @keyframes slideIn {
@@ -615,6 +627,23 @@ body {
     }
 }
 
+.toast.success {
+    border-left: 4px solid var(--success);
+}
+
+.toast.error {
+    border-left: 4px solid var(--danger);
+}
+
+.toast-icon {
+    font-size: 1.25rem;
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 0.9375rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .sidebar {
@@ -623,6 +652,7 @@ body {
     
     .main-content {
         margin-left: 0;
+        padding: 1rem;
     }
     
     .upload-grid {
@@ -633,11 +663,17 @@ body {
         grid-template-columns: 1fr;
     }
     
-    .item-actions {
-        flex-wrap: wrap;
-    }
-    
     .modal-actions {
         flex-direction: column;
+    }
+    
+    .toast-container {
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+    }
+    
+    .toast {
+        min-width: auto;
     }
 }

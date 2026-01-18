@@ -29,6 +29,10 @@
                     <span class="nav-icon">➕</span>
                     <span>Add New</span>
                 </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <span class="nav-icon">🚪</span>
+                    <span>Logout</span>
+                </a>
             </nav>
         </aside>
 
@@ -133,5 +137,12 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <script src="/js/admin.js"></script>
+    <script>
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+    </script>
 </body>
 </html>

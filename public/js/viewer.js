@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         compiledMindData = await compileTargetImage(menuItem.targetImage);
         
         if (!compiledMindData) {
-            showError('Compilation Failed', 'Could not process the target image for AR.');
+            showError('Compilation Failed', 'Could not process the target image for AR. Please try again.');
             return;
         }
         
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
     } catch (error) {
         console.error('Initialization error:', error);
-        showError('Error', error.message);
+        showError('Error', error.message || 'Something went wrong');
     }
 });
 
@@ -113,10 +113,9 @@ async function compileTargetImage(imageUrl) {
         
         console.log('Image loaded:', img.width, 'x', img.height);
         
-        // Use MindAR's image compiler
-        // The compiler is included in the MindAR CDN
-        if (typeof MINDAR === 'undefined' || !MINDAR.IMAGE) {
-            // Load MindAR compiler dynamically if not available
+        // Check if MindAR compiler is available
+        if (typeof MINDAR === 'undefined' || !MINDAR.IMAGE || !MINDAR.IMAGE.Compiler) {
+            console.log('MindAR compiler not found, loading...');
             await loadScript('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js');
         }
         
@@ -127,7 +126,7 @@ async function compileTargetImage(imageUrl) {
             updateLoadingText(`Processing target image... ${percent}%`);
         });
         
-        // Get the compiled data as a data URL
+        // Get the compiled data
         const exportedData = await compiler.exportData();
         
         // Convert to blob URL for use in A-Frame
@@ -139,16 +138,12 @@ async function compileTargetImage(imageUrl) {
         
     } catch (error) {
         console.error('Failed to compile target image:', error);
-        
-        // Fallback: try using the image directly (may not work well)
-        console.log('Attempting fallback with raw image...');
         return null;
     }
 }
 
 function loadScript(src) {
     return new Promise((resolve, reject) => {
-        // Check if already loaded
         if (document.querySelector(`script[src="${src}"]`)) {
             resolve();
             return;
@@ -157,7 +152,7 @@ function loadScript(src) {
         const script = document.createElement('script');
         script.src = src;
         script.onload = resolve;
-        script.onerror = reject;
+        script.onerror = () => reject(new Error('Failed to load script: ' + src));
         document.head.appendChild(script);
     });
 }
@@ -168,20 +163,16 @@ function loadScript(src) {
 
 async function checkCameraSupport() {
     try {
-        // Check if getUserMedia is available
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             console.warn('getUserMedia not supported');
             return false;
         }
         
-        // Try to get camera access
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'environment' } 
         });
         
-        // Stop the stream immediately (we just needed to check access)
         stream.getTracks().forEach(track => track.stop());
-        
         return true;
     } catch (error) {
         console.warn('Camera access denied or unavailable:', error);
@@ -196,14 +187,12 @@ async function checkCameraSupport() {
 async function initAR() {
     const arContainer = document.getElementById('arContainer');
     
-    // Create A-Frame scene dynamically
+    // Create A-Frame scene
     const sceneHTML = createARScene();
     arContainer.innerHTML = sceneHTML;
     
-    // Wait for scene to initialize
     arScene = document.querySelector('a-scene');
     
-    // Handle scene loaded
     arScene.addEventListener('loaded', () => {
         console.log('A-Frame scene loaded');
         hideLoading();
@@ -211,7 +200,6 @@ async function initAR() {
         showInstructions();
     });
     
-    // Handle AR events
     arScene.addEventListener('arReady', () => {
         console.log('MindAR ready');
         isARActive = true;
@@ -219,7 +207,7 @@ async function initAR() {
     
     arScene.addEventListener('arError', (e) => {
         console.error('MindAR error:', e);
-        showError('AR Error', 'Failed to initialize augmented reality. Please try refreshing the page.');
+        showError('AR Error', 'Failed to start AR. Please refresh and try again.');
     });
     
     // Setup target event listeners
@@ -233,10 +221,7 @@ async function initAR() {
 }
 
 function createARScene() {
-    /**
-     * Create the A-Frame AR scene with MindAR
-     * Using the compiled .mind data from the browser compiler
-     */
+    const contentType = menuItem.contentType || 'video';
     
     return `
         <a-scene
@@ -254,9 +239,8 @@ function createARScene() {
             vr-mode-ui="enabled: false"
             device-orientation-permission-ui="enabled: false">
             
-            <!-- Assets preloading -->
             <a-assets>
-                ${menuItem.contentType === 'video' ? 
+                ${contentType === 'video' ? 
                     `<video id="arVideo" src="${menuItem.arContent}" 
                             preload="auto" loop crossorigin="anonymous" 
                             playsinline webkit-playsinline muted></video>` : 
@@ -264,12 +248,10 @@ function createARScene() {
                 }
             </a-assets>
             
-            <!-- Camera -->
             <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
             
-            <!-- AR Target -->
             <a-entity mindar-image-target="targetIndex: 0">
-                ${menuItem.contentType === '3d' ? `
+                ${contentType === '3d' ? `
                     <a-gltf-model
                         src="#arModel"
                         position="0 0 0.1"
@@ -298,19 +280,17 @@ function createARScene() {
 function onTargetFound() {
     console.log('Target found!');
     
-    // Hide scanning indicator
     const scanningIndicator = document.getElementById('scanningIndicator');
     if (scanningIndicator) {
         scanningIndicator.classList.add('hidden');
     }
     
-    // Play video if content is video
-    if (menuItem.contentType === 'video') {
+    if (menuItem.contentType === 'video' || !menuItem.contentType) {
         const video = document.getElementById('arVideo');
         if (video) {
             video.muted = false;
             video.play().catch(e => {
-                console.log('Video autoplay prevented, trying muted:', e);
+                console.log('Video autoplay blocked, playing muted');
                 video.muted = true;
                 video.play();
             });
@@ -321,14 +301,12 @@ function onTargetFound() {
 function onTargetLost() {
     console.log('Target lost');
     
-    // Show scanning indicator
     const scanningIndicator = document.getElementById('scanningIndicator');
     if (scanningIndicator) {
         scanningIndicator.classList.remove('hidden');
     }
     
-    // Pause video
-    if (menuItem.contentType === 'video') {
+    if (menuItem.contentType === 'video' || !menuItem.contentType) {
         const video = document.getElementById('arVideo');
         if (video) {
             video.pause();
@@ -341,17 +319,13 @@ function onTargetLost() {
 // ============================================
 
 function updateLoadingText(text) {
-    const loadingText = document.getElementById('loadingText');
-    if (loadingText) {
-        loadingText.textContent = text;
-    }
+    const el = document.getElementById('loadingText');
+    if (el) el.textContent = text;
 }
 
 function hideLoading() {
-    const loadingScreen = document.getElementById('loadingScreen');
-    if (loadingScreen) {
-        loadingScreen.classList.add('hidden');
-    }
+    const el = document.getElementById('loadingScreen');
+    if (el) el.classList.add('hidden');
 }
 
 function showUI() {
@@ -362,17 +336,13 @@ function showUI() {
 }
 
 function showInstructions() {
-    const instructionsOverlay = document.getElementById('instructionsOverlay');
-    if (instructionsOverlay) {
-        instructionsOverlay.classList.remove('hidden');
-    }
+    const el = document.getElementById('instructionsOverlay');
+    if (el) el.classList.remove('hidden');
 }
 
 function hideInstructions() {
-    const instructionsOverlay = document.getElementById('instructionsOverlay');
-    if (instructionsOverlay) {
-        instructionsOverlay.classList.add('hidden');
-    }
+    const el = document.getElementById('instructionsOverlay');
+    if (el) el.classList.add('hidden');
 }
 
 function showError(title, message) {
@@ -402,14 +372,14 @@ function showFallback() {
     if (fallbackDescription) fallbackDescription.textContent = menuItem.description || '';
     
     if (mediaContainer) {
-        if (menuItem.contentType === 'video') {
+        const contentType = menuItem.contentType || 'video';
+        if (contentType === 'video') {
             mediaContainer.innerHTML = `
                 <video controls autoplay loop muted playsinline style="max-width: 100%; border-radius: 8px;">
                     <source src="${menuItem.arContent}" type="video/mp4">
                 </video>
             `;
         } else {
-            // For 3D models, show model-viewer or placeholder
             mediaContainer.innerHTML = `
                 <div style="padding: 2rem; text-align: center;">
                     <span style="font-size: 4rem;">📦</span>
@@ -423,11 +393,7 @@ function showFallback() {
     }
 }
 
-// ============================================
-// CUSTOM A-FRAME COMPONENTS
-// ============================================
-
-// Component to handle video playback on target
+// Register A-Frame component
 if (typeof AFRAME !== 'undefined') {
     AFRAME.registerComponent('play-on-target', {
         init: function() {
