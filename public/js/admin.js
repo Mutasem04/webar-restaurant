@@ -17,12 +17,63 @@ let selectedTargetImage = null;
 let selectedARContent = null;
 let currentQRItem = null;
 
+// Get auth token from localStorage
+function getAuthToken() {
+    return localStorage.getItem('token');
+}
+
+// Check if user is logged in
+function checkAuth() {
+    const token = getAuthToken();
+    if (!token) {
+        showToast('Please login to access admin panel', 'error');
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1500);
+        return false;
+    }
+    return true;
+}
+
+// Helper for authenticated fetch requests
+async function authFetch(url, options = {}) {
+    const token = getAuthToken();
+    if (!token) {
+        throw new Error('Authentication required');
+    }
+    
+    const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+    };
+    
+    // Don't set Content-Type for FormData (let browser set it with boundary)
+    if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
+    
+    const response = await fetch(url, { ...options, headers });
+    
+    if (response.status === 401) {
+        localStorage.removeItem('token');
+        showToast('Session expired. Please login again.', 'error');
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1500);
+        throw new Error('Session expired');
+    }
+    
+    return response;
+}
+
 // ============================================
 // INITIALIZATION
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Admin JS loaded, initializing...');
+    if (!checkAuth()) return;
+    
     initFileUploads();
     initForm();
     loadMenuItems();
@@ -271,8 +322,8 @@ function initForm() {
             updateProgress(40);
             showCompilerStatus('Processing target image...');
 
-            // Submit to server
-            const response = await fetch('/api/items', {
+            // Submit to server with auth
+            const response = await authFetch('/api/items', {
                 method: 'POST',
                 body: formData
             });
@@ -338,8 +389,11 @@ async function loadMenuItems() {
     const container = document.getElementById('menuItemsList');
 
     try {
-        const response = await fetch('/api/items');
-        const items = await response.json();
+        const response = await authFetch('/api/items');
+        const data = await response.json();
+        
+        // Handle both array and object with items property
+        const items = Array.isArray(data) ? data : (data.items || []);
 
         if (items.length === 0) {
             container.innerHTML = `
@@ -391,7 +445,7 @@ async function deleteItem(id) {
     if (!confirm('Are you sure you want to delete this item?')) return;
 
     try {
-        const response = await fetch(`/api/items/${id}`, {
+        const response = await authFetch(`/api/items/${id}`, {
             method: 'DELETE'
         });
 
@@ -422,15 +476,19 @@ function showQRModal(item) {
     title.textContent = item.name;
     url.textContent = item.viewerUrl;
 
-    // Fetch QR code
-    fetch(`/api/items/${item.id}/qrcode`)
-        .then(res => res.json())
-        .then(data => {
-            container.innerHTML = `<img src="${data.qrCode}" alt="QR Code">`;
-        })
-        .catch(() => {
-            container.innerHTML = `<p style="color: #ef4444;">Failed to load QR code</p>`;
-        });
+    // Use qrCode from item if available, otherwise fetch
+    if (item.qrCode) {
+        container.innerHTML = `<img src="${item.qrCode}" alt="QR Code">`;
+    } else {
+        authFetch(`/api/items/${item.id}/qrcode`)
+            .then(res => res.json())
+            .then(data => {
+                container.innerHTML = `<img src="${data.qrCode}" alt="QR Code">`;
+            })
+            .catch(() => {
+                container.innerHTML = `<p style="color: #ef4444;">Failed to load QR code</p>`;
+            });
+    }
 
     modal.classList.remove('hidden');
 }
